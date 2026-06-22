@@ -21,8 +21,17 @@ const cronRoutes = require('./routes/cron');
 
 const app = express();
 
-// Connect to MongoDB (cached for serverless)
-connectDB();
+// DB connection middleware — awaits the cached connection on every request.
+// This is the correct pattern for serverless: each invocation must await the
+// connection since the module may be cold-started without a live DB handle.
+app.use(async (_req, _res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Only run node-cron in non-serverless environments (local dev)
 if (!process.env.VERCEL) {
